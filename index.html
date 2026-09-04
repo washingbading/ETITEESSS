@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ES3 Key Finder</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0e1118; color: #ffffff; max-width: 450px; margin: 60px auto; padding: 25px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); border: 1px solid #1f293d; }
+        h2 { text-align: center; color: #4f46e5; margin-bottom: 25px; font-size: 24px; }
+        label { display: block; margin: 12px 0 6px; font-size: 14px; color: #9ca3af; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 10px; background-color: #1f293d; border: 1px solid #374151; border-radius: 6px; color: #ffffff; font-size: 15px; box-sizing: border-box; transition: border-color 0.2s; }
+        input:focus, select:focus { border-color: #6366f1; outline: none; }
+        button { width: 100%; padding: 14px; background-color: #4f46e5; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: background-color 0.2s; }
+        button:hover { background-color: #4338ca; }
+        #result { margin-top: 25px; padding: 15px; border-radius: 6px; font-size: 15px; display: none; word-break: break-all; }
+        .success { background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #059669; }
+        .error { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #dc2626; }
+    </style>
+</head>
+<body>
+    <h2>ES3 Key Finder</h2>
+    <label for="email">Email:</label>
+    <input type="email" id="email" placeholder="Enter account email" required>
+    <label for="password">Password:</label>
+    <input type="password" id="password" placeholder="Enter account password" required>
+    <label for="filename">ES3 Filename:</label>
+    <input type="text" id="filename" placeholder="e.g., SaveFile.es3" required>
+    <label for="version">Version:</label>
+    <select id="version"><option value="1">Version 1</option><option value="2">Version 2</option></select>
+    <button onclick="getKey()">Get ES3 Key</button>
+    <div id="result"></div>
+    <script>
+        const CPM1_API_KEY = "AIzaSyBW1ZbMiUeDZHYUO2bY8Bfnf5rRgrQGPTM";
+        const CPM2_API_KEY = "AIzaSyCQDz9rgjgmvmFkvVfmvr2-7fT4tfrzRRQ";
+        async function getKey() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const filename = document.getElementById('filename').value.trim();
+            const ver = document.getElementById('version').value;
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+            if (!email || !password || !filename) { showError("[-] Please fill up all fields."); return; }
+            const apiKey = ver === "2" ? CPM2_API_KEY : CPM1_API_KEY;
+            const url = `https://googleapis.com{apiKey}`;
+            const payload = { email: email, password: password, returnSecureToken: true, clientType: "CLIENT_TYPE_ANDROID" };
+            try {
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) { showError("[-] Authentication failed. Check your credentials."); return; }
+                const data = await response.json();
+                const localId = data.localId;
+                if (!localId) { showError("[-] Failed to get local ID."); return; }
+                const accountKey = localId.substring(0, 3);
+                try {
+                    let baseName = filename.split(".")[0];
+                    let pad = baseName.length % 4;
+                    if (pad) { baseName += "=".repeat(4 - pad); }
+                    let decodedStr = atob(baseName);
+                    let fileKey = decodedStr.substring(0, 3);
+                    const fullKey = `${fileKey}${accountKey}`;
+                    showSuccess(`[+] ES3 Key: ${fullKey}`);
+                } catch (e) { showError("[-] Invalid filename format. Ensure the filename can be decoded."); }
+            } catch (error) { showError("[-] Error connecting to API. Check your internet connection."); }
+        }
+        function showError(msg) { const resultDiv = document.getElementById('result'); resultDiv.className = 'error'; resultDiv.innerText = msg; resultDiv.style.display = 'block'; }
+        function showSuccess(msg) { const resultDiv = document.getElementById('result'); resultDiv.className = 'success'; resultDiv.innerText = msg; resultDiv.style.display = 'block'; }
+    </script>
+</body>
+</html>
